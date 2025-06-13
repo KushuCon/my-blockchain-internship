@@ -1,0 +1,24 @@
+type RewardProposal = 
+ record {
+   approved: bool;
+   description: text;
+   id: nat;
+   retailer: principal;
+   votes: nat;
+ };
+type MemberReward = 
+ record {
+   memberId: principal;
+   points: nat;
+ };
+service : {
+  addRewardPoints: (memberId: principal, points: nat) -> (bool);
+  approveProposal: (proposalId: nat, threshold: nat) -> (bool);
+  getAllMemberRewards: () -> (vec MemberReward) query;
+  getAllProposals: () -> (vec RewardProposal) query;
+  getMemberRewards: (memberId: principal) -> (opt MemberReward) query;
+  getProposal: (proposalId: nat) -> (opt RewardProposal) query;
+  proposeReward: (retailer: principal, description: text) -> (nat);
+  redeemPoints: (memberId: principal, points: nat) -> (bool);
+  voteForProposal: (proposalId: nat) -> (bool);
+}
