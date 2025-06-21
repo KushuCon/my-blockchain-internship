@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rust Task Manager (Minimal)</title>
+</head>
+<body>
+    <div>
+        <h1>Rust Task Manager</h1>
+        <div id="messageBox" style="display: none;"></div>
+
+        <div>
+            <h2>Add Task</h2>
+            <div><input type="text" id="newDesc" placeholder="Description"><button id="addBtn">Add</button></div>
+        </div>
+
+        <div>
+            <h2>Update Task</h2>
+            <div>
+                <input type="number" id="updateId" placeholder="ID">
+                <input type="text" id="updateDesc" placeholder="New description (optional)">
+                <div><input type="checkbox" id="updateComp"><label for="updateComp">Completed</label></div>
+                <button id="updateBtn">Update</button>
+            </div>
+        </div>
+
+        <div>
+            <h2>Delete Task</h2>
+            <div><input type="number" id="deleteId" placeholder="ID to delete"><button id="deleteBtn">Delete</button></div>
+        </div>
+
+        <div>
+            <h2>All Tasks</h2>
+            <button id="refreshBtn">Refresh</button>
+            <div>
+                <table id="tasksTable">
+                    <thead><tr><th>ID</th><th>Description</th><th>Status</th></tr></thead>
+                    <tbody></tbody>
+                </table>
+                <p id="noTasksMsg" style="display: none;">No tasks to display.</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://127.0.0.1:8080/api/tasks';
+        const newDescInput = document.getElementById('newDesc');
+        const addBtn = document.getElementById('addBtn');
+        const tasksTableBody = document.querySelector('#tasksTable tbody');
+        const noTasksMsg = document.getElementById('noTasksMsg');
+        const refreshBtn = document.getElementById('refreshBtn');
+        const updateIdInput = document.getElementById('updateId');
+        const updateDescInput = document.getElementById('updateDesc');
+        const updateCompCheckbox = document.getElementById('updateComp');
+        const updateBtn = document.getElementById('updateBtn');
+        const deleteIdInput = document.getElementById('deleteId');
+        const deleteBtn = document.getElementById('deleteBtn');
+        const msgBox = document.getElementById('messageBox');
+
+        function showMsg(msg) {
+            msgBox.textContent = msg;
+            msgBox.style.display = 'block';
+            setTimeout(() => msgBox.style.display = 'none', 3000);
+        }
+
+        async function fetchTasks() {
+            try {
+                const res = await fetch(API_BASE);
+                if (!res.ok) throw new Error(`HTTP status: ${res.status}`);
+                renderTasks(await res.json());
+            } catch (err) {
+                console.error('Fetch error:', err);
+                showMsg('Failed to load tasks. Server down?');
+            }
+        }
+
+        function renderTasks(tasks) {
+            tasksTableBody.innerHTML = '';
+            if (tasks.length === 0) {
+                noTasksMsg.style.display = 'block';
+                tasksTable.style.display = 'none';
+                return;
+            } else {
+                noTasksMsg.style.display = 'none';
+                tasksTable.style.display = 'table';
+            }
+            tasks.forEach(task => {
+                const row = tasksTableBody.insertRow();
+                row.insertCell().textContent = task.id;
+                row.insertCell().textContent = task.description;
+                row.insertCell().textContent = task.completed ? '✅ Done' : '⏳ Pending';
+            });
+        }
+
+        addBtn.addEventListener('click', async () => {
+            const desc = newDescInput.value.trim();
+            if (!desc) { showMsg('Description cannot be empty!'); return; }
+            try {
+                const res = await fetch(API_BASE, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ description: desc }) });
+                if (!res.ok) throw new Error(`HTTP status: ${res.status}`);
+                const newTask = await res.json();
+                showMsg(`Added: "${newTask.description}" (ID: ${newTask.id})`);
+                newDescInput.value = '';
+                fetchTasks();
+            } catch (err) { console.error('Add error:', err); showMsg('Failed to add task.'); }
+        });
+
+        updateBtn.addEventListener('click', async () => {
+            const id = parseInt(updateIdInput.value.trim());
+            if (isNaN(id)) { showMsg('Enter valid ID for update.'); return; }
+            const desc = updateDescInput.value.trim();
+            const comp = updateCompCheckbox.checked;
+            if (!desc && !updateCompCheckbox.checked && updateDescInput.value.trim() === '') { showMsg('Provide description or status.'); return; }
+            const payload = {};
+            if (desc !== '') payload.description = desc;
+            if (updateCompCheckbox.checked || updateCompCheckbox.indeterminate === false) payload.completed = comp;
+            try {
+                const res = await fetch(`${API_BASE}/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+                if (res.status === 404) { showMsg(`Task ID ${id} not found.`); return; }
+                if (!res.ok) throw new Error(`HTTP status: ${res.status}`);
+                const updatedTask = await res.json();
+                showMsg(`Updated ID ${id}: "${updatedTask.description}" (Done: ${updatedTask.completed})`);
+                updateIdInput.value = updateDescInput.value = ''; updateCompCheckbox.checked = false;
+                fetchTasks();
+            } catch (err) { console.error('Update error:', err); showMsg('Failed to update task.'); }
+        });
+
+        deleteBtn.addEventListener('click', async () => {
+            const id = parseInt(deleteIdInput.value.trim());
+            if (isNaN(id)) { showMsg('Enter valid ID to delete.'); return; }
+            // Using standard confirm() for brevity as requested
+            if (!confirm(`Delete task ID ${id}?`)) return;
+
+            try {
+                const res = await fetch(`${API_BASE}/${id}`, { method: 'DELETE' });
+                if (res.status === 404) { showMsg(`Task ID ${id} not found.`); return; }
+                if (!res.ok) throw new Error(`HTTP status: ${res.status}`);
+                showMsg(`Task ID ${id} deleted.`);
+                deleteIdInput.value = '';
+                fetchTasks();
+            } catch (err) { console.error('Delete error:', err); showMsg('Failed to delete task.'); }
+        });
+
+        refreshBtn.addEventListener('click', fetchTasks);
+        document.addEventListener('DOMContentLoaded', fetchTasks);
+    </script>
+</body>
+</html>
