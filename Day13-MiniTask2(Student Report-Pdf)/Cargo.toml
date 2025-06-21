@@ -1,0 +1,8 @@
+[package]
+name = "student_report"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+printpdf = "0.5.2"
+text_io = "0.1.12"
