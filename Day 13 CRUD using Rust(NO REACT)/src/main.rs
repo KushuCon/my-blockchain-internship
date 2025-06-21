@@ -4,7 +4,7 @@
     use std::sync::Arc;
     use parking_lot::Mutex;
     use actix_cors::Cors;
-    use actix_files as fs; // Import for serving static files
+    use actix_files as fs; 
 
     #[derive(Debug, Clone, Serialize, Deserialize)]
     struct Task {
@@ -115,14 +115,13 @@
                 )
                 .app_data(web::Data::from(app_state.clone()))
                 .service(
-                    web::scope("/api/tasks") // All API calls will be prefixed with /api/tasks
+                    web::scope("/api/tasks") 
                         .route("", web::get().to(get_tasks))
                         .route("", web::post().to(create_task))
                         .route("/{id}", web::get().to(get_task_by_id))
                         .route("/{id}", web::put().to(update_task))
                         .route("/{id}", web::delete().to(delete_task)),
                 )
-                // This line serves your static HTML file from the 'static' directory
                 .service(fs::Files::new("/", "./static").index_file("index.html"))
         })
         .bind(("127.0.0.1", 8080))?
