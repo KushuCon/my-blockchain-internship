@@ -47,7 +47,7 @@ fn main() {
     println!("Enter student name:");
     let mut name = String::new();
     stdin().read_line(&mut name).unwrap();
-    let name = name.trim(); // remove newline
+    let name = name.trim();
 
     println!("Enter total marks:");
     let total: f32 = read!();
